@@ -1,6 +1,7 @@
 from nltk import WordNetLemmatizer
 from numpy import zeros
 import sklearn
+import re
 
 def filter_words(words):
     filtered_words = []
@@ -14,6 +15,7 @@ def filter_words(words):
     for word_vector in filtered_words:
         word_vector = [wnl.lemmatize(word) for word in word_vector];
         words.append(word_vector)
+
 
     return words
 
@@ -35,19 +37,27 @@ def get_most_frequent_words(words):
 
     return final_words;
 
+
+def rep_id(word, ids):
+    if word in ids:
+        return 'part_id';
+    else:
+        return word;
+
 def replace_participant_id(words, ids):
     res = []
     for word_vector in words:
-        res.append(list(map(lambda x: 'part_id' if x in ids else x,  word_vector)))
+        res.append(list(map(lambda x: rep_id(x, ids),  word_vector)))
     return res
 
 def get_agetype(word):
     try:
-        if int(word) < 18:
+        wordint = int(re.search(r'\d+', word).group());
+        if wordint < 18 and wordint > 7:
             return 'age_minor'
         else:
             return 'age_adult'
-    except ValueError:
+    except AttributeError:
         return word;
 
 def replace_age(words):
@@ -55,6 +65,7 @@ def replace_age(words):
     for word_vector in words:
         res.append(list(map(lambda x: get_agetype(x), word_vector)))
     return res
+
 
 def bag_of_words(words, words_to_count = None):
     if words_to_count == None:
