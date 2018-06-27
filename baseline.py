@@ -17,7 +17,7 @@ default_test_user_ids = '../pan12-sexual-predator-identification-test-corpus-201
 default_processing_function = file_processing.split_by_user_filter_short_conversations
 default_id_function = file_processing.split_ids
 
-NUM_TOPICS = 2
+NUM_TOPICS = 5
 
 
 def train(train_file, train_conversations, classifier):
@@ -29,8 +29,8 @@ def train(train_file, train_conversations, classifier):
     (train_data, ids) = word_processing.thin_ids(train_data, ids);
     print('filtered data')
     print(len(ids))
-#    train_data = word_processing.replace_participant_id(train_data, ids);
-#    print('replaced ids')
+ #   train_data = word_processing.replace_participant_id(train_data, ids);
+    print('replaced ids')
 
     predatory_ids = default_id_function(train_conversations);
     train_ids = word_processing.conversations_binary(ids, predatory_ids);
@@ -41,10 +41,7 @@ def train(train_file, train_conversations, classifier):
     print(sum(train_ids))
     print (train_data[0])
 
-    (most_used_words, _) = word_processing.bag_of_words(train_data);
-    print (train_data[0])
- #   tfidf = TfidfTransformer();
- #   tfidf.fit_transform(train_data);
+    ### Gensim Latent Dirichlet Allocation
 
     dictionary = gensim.corpora.Dictionary(train_data)
     corpus = [dictionary.doc2bow(text) for text in train_data]
@@ -52,17 +49,29 @@ def train(train_file, train_conversations, classifier):
     ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=15)
     ldamodel.save('modeltrain.gensim')
 
-    topics = ldamodel.print_topics(num_words=4)
-    for topic in topics:
-        print(topic)
+#   topics = ldamodel.print_topics(num_words=4)
+#    for topic in topics:
+#        print(topic)
 
-    classifier.fit(topics, train_ids);
+#   (most_used_words, train_data) = word_processing.bag_of_words(train_data);
+#    tfidf = TfidfTransformer();
+#    tfidf.fit_transform(train_data);
+
+    gens_data = []
+    for doc in corpus:
+        current_topics = ldamodel.get_document_topics(doc)
+        gens_data.append(current_topics)
+
+    gens_data = word_processing.bag_of_words_for_topics(gens_data, NUM_TOPICS)
+
+    classifier.fit(gens_data, train_ids);
 
     print('classified data')
-    return most_used_words;
+
+    return ldamodel;
 
 
-def test(test_file, test_conversations, classifier, most_used_words):
+def test(test_file, test_conversations, classifier, ldamodel):
     (test_data, ids) = default_processing_function(test_file)
 
     test_data = word_processing.filter_words(test_data)
@@ -74,18 +83,22 @@ def test(test_file, test_conversations, classifier, most_used_words):
 
     predatory_ids = default_id_function(test_conversations);
     test_ids = word_processing.conversations_binary(ids, predatory_ids);
-    (_, test_data) = word_processing.bag_of_words(test_data, most_used_words);
+#    (_, test_data) = word_processing.bag_of_words(test_data, most_used_words);
 
  #   tfidf = TfidfTransformer();
  #   tfidf.fit_transform(test_data);
 
-    dictionary = gensim.corpora.Dictionary(test_data)
+    dictionary = ldamodel.id2word
     corpus = [dictionary.doc2bow(text) for text in test_data]
 
-    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=15)
-    ldamodel.save('modeltrain.gensim')
+    gens_data = []
+    for doc in corpus:
+        current_topics = ldamodel[doc]
+        gens_data.append(current_topics)
 
-    pred_ids = classifier.predict(test_data);
+    gens_data = word_processing.bag_of_words_for_topics(gens_data, NUM_TOPICS)
+
+    pred_ids = classifier.predict(gens_data);
 
     print(sklearn.metrics.accuracy_score(test_ids, pred_ids))
     print(len(test_ids))
@@ -109,9 +122,6 @@ def test(test_file, test_conversations, classifier, most_used_words):
             else:
                 false_positives += 1;
 
-   # print ('true positives / negatives: ' + str(true_positives) +  ' / ' + str(true_negatives))
-   # print ('false positives / negatives: ' + str (false_positives) + ' / ' + str(false_negatives))
-
     res = open('res.txt', 'w')
     res.write ('true positives / negatives: ' + str(true_positives) +  ' / ' + str(true_negatives))
     res.write ('\nfalse positives / negatives: ' + str (false_positives) + ' / ' + str(false_negatives))
@@ -124,8 +134,8 @@ def main(train_file = default_train_file, test_file = default_test_file, \
          train_conversations = default_train_conversations, test_conversations = default_test_conversations, \
          train_user_ids = default_train_user_ids, test_user_ids = default_test_user_ids):
     classifier = sklearn.svm.SVC(kernel= 'linear',  class_weight= {0: 10, 1:1})
-    most_used_words = train(train_file, train_user_ids, classifier);
-    test(test_file, test_user_ids, classifier, most_used_words);
+    ldamodel= train(train_file, train_user_ids, classifier);
+    test(test_file, test_user_ids, classifier, ldamodel);
 
 if __name__ == '__main__':
     main()

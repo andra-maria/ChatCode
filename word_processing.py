@@ -82,6 +82,16 @@ def bag_of_words(words, words_to_count = None):
 
     return (words_to_count, new_train_data);
 
+def bag_of_words_for_topics(topics, topics_no):
+    new_topics = []
+    for topic_vector in topics:
+        current_topics = [0.0] * topics_no
+        for (topic, prob) in topic_vector:
+            current_topics[topic] = prob;
+        new_topics.append(current_topics.copy())
+
+    return new_topics
+
 def thin_ids(words, ids):
     length = len(words)
     i=0
