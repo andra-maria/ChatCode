@@ -1,2 +1,7 @@
+<<<<<<< HEAD
+true positives / negatives: 130 / 131845
+false positives / negatives: 5133 / 3229
+=======
 true positives / negatives: 0 / 46827
 false positives / negatives: 0 / 227
+>>>>>>> parent of 4536cb6... Gensim work
