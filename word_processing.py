@@ -11,7 +11,7 @@ import random
 
 def filter_words(words):
     filtered_words = []
-    stop_words = sklearn.feature_extraction.text.ENGLISH_STOP_WORDS.union(['amp', 'apos', 'http', 'quot', 'www', 'href', 'html'])
+    stop_words = sklearn.feature_extraction.text.ENGLISH_STOP_WORDS.union(['amp', 'apos', 'http', 'quot', 'www', 'href', 'html', 'com'])
 
     for word_vector in words:
         word_vector = [word for word in word_vector if word not in stop_words]
@@ -92,7 +92,7 @@ def misc_clean_up(words):
     filtered_words = []
 
     for word_vector in words:
-        word_vector = [word for word in word_vector if len(word) > 1 or word is 'm' or word is 'f']
+        word_vector = [word for word in word_vector if len(word) > 1 or word is 'm' or word is 'f'or word is 'u']
         filtered_words.append(word_vector)
 
     return filtered_words
@@ -247,9 +247,9 @@ def double_lda(data, ids):
     dictionary = gensim.corpora.Dictionary(data)
     corpus1 = [dictionary.doc2bow(text) for text in pred_data]
 
-    ldamodel1 = gensim.models.ldamodel.LdaModel(corpus1, num_topics=15, id2word=dictionary, passes=5)
+    ldamodel1 = gensim.models.ldamodel.LdaModel(corpus1, num_topics=35, id2word=dictionary, passes=5)
 
     corpus2 = [dictionary.doc2bow(text) for text in other_data]
-    ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=15, id2word=dictionary, passes=5)
+    ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=35, id2word=dictionary, passes=5)
 
     return ldamodel1, ldamodel2

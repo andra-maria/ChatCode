@@ -13,6 +13,8 @@ def split_by_conversation(filename):
     conversation_ids = []
     current_id = None
     line_count = 0
+    add_count = 0
+    skip_count = 0
 
     with open(filename, "r", encoding=enc) as ins:
         for line in ins:
@@ -29,7 +31,14 @@ def split_by_conversation(filename):
                 line = line.replace(end_text_tag, ' ')
                 line = line.lower()
                 line_count = line_count + 1
-                current_convo.extend(filter(bool, (split(r'\W+', line))))
+                if add_count < 10:
+                    current_convo.extend(filter(bool, (split(r'\W+', line))))
+                    add_count = add_count + 1
+                else:
+                    skip_count = skip_count + 1
+                    if skip_count is 5:
+                        add_count = 0
+                        skip_count = 0
 
     if current_convo and line_count > 15:
         result.append(current_convo)

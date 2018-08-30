@@ -105,9 +105,13 @@ def test(test_file, test_conversations, classifier, ldamodel1, ldamodel2):
     test_data = word_processing.filter_words(test_data)
     test_data = word_processing.replace_age(test_data)
 
+    print("filtered test data")
+
     (test_data, ids) = word_processing.thin_ids(test_data, ids)
     #test_data = word_processing.replace_participant_id_conversations(test_data, test_file)
     test_data = word_processing.misc_clean_up(test_data)
+
+    print("thinned test ids")
 
     print(test_data[0])
 
