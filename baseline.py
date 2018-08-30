@@ -15,40 +15,41 @@ default_test_conversations = '../pan12-sexual-predator-identification-test-corpu
 default_train_user_ids = '../pan12-sexual-predator-identification-training-corpus-2012-05-01/pan12-sexual-predator-identification-training-corpus-predators-2012-05-01.txt'
 default_test_user_ids = '../pan12-sexual-predator-identification-test-corpus-2012-05-21/pan12-sexual-predator-identification-groundtruth-problem1.txt'
 
-default_processing_function = file_processing.split_by_user_filter_short_conversations
+default_processing_function = file_processing.split_by_conversation
 default_id_function = file_processing.split_ids
 
 NUM_TOPICS = 5
 
 
 def train(train_file, train_conversations, classifier):
-    (train_data, ids) = default_processing_function(train_file)
+    (train_data, train_ids) = file_processing.split_by_conversation(train_file, default_train_user_ids)
 
     train_data = word_processing.filter_words(train_data)
     train_data = word_processing.replace_age(train_data)
     print('replaced age')
-    (train_data, ids) = word_processing.thin_ids(train_data, ids)
+    (train_data, train_ids) = word_processing.thin_ids(train_data, train_ids)
     #train_data = word_processing.replace_participant_id_conversations(train_data, train_file)
     train_data = word_processing.misc_clean_up(train_data)
     print('filtered data')
-    print(len(ids))
+    print('len ids ' + str(len(train_ids)))
  #   train_data = word_processing.replace_participant_id(train_data, ids);
     print('replaced ids')
 
-    predatory_ids = default_id_function(train_file, train_conversations)
-    train_ids = word_processing.conversations_binary(ids, predatory_ids)
+#    predatory_ids = default_id_function(train_file, train_conversations)
+#    train_ids = word_processing.conversations_binary(ids, predatory_ids)
 
     print('processed training ids')
+
+
+    print('processed training ids')
+    print('len train ids' + str(len(train_ids)))
+    print(train_ids)
+    print('number of predatory ids in train ids ' + str(sum(train_ids)))
+    print (train_data[0])
+
 
     # Gensim Latent Dirichlet Allocation
-
     (ldamodel1, ldamodel2) = word_processing.double_lda(train_data, train_ids)
-
-    print('processed training ids')
-    print(len(train_ids))
-    print(len(predatory_ids))
-    print(sum(train_ids))
-    print (train_data[0])
 
     print("lda pred")
     topics = ldamodel1.print_topics(num_words=10)
@@ -100,14 +101,14 @@ def train(train_file, train_conversations, classifier):
 
 
 def test(test_file, test_conversations, classifier, ldamodel1, ldamodel2):
-    (test_data, ids) = default_processing_function(test_file)
+    (test_data, test_ids) = file_processing.split_by_conversation(test_file, default_test_user_ids)
 
     test_data = word_processing.filter_words(test_data)
     test_data = word_processing.replace_age(test_data)
 
     print("filtered test data")
 
-    (test_data, ids) = word_processing.thin_ids(test_data, ids)
+    (test_data, test_ids) = word_processing.thin_ids(test_data, test_ids)
     #test_data = word_processing.replace_participant_id_conversations(test_data, test_file)
     test_data = word_processing.misc_clean_up(test_data)
 
@@ -115,8 +116,8 @@ def test(test_file, test_conversations, classifier, ldamodel1, ldamodel2):
 
     print(test_data[0])
 
-    predatory_ids = default_id_function(test_file, test_conversations)
-    test_ids = word_processing.conversations_binary(ids, predatory_ids)
+  #  predatory_ids = default_id_function(test_file, test_conversations)
+ #   test_ids = word_processing.conversations_binary(ids, predatory_ids)
 #    (_, test_data) = word_processing.bag_of_words(test_data, most_used_words);
 
 #    tfidf = TfidfTransformer();
@@ -137,7 +138,6 @@ def test(test_file, test_conversations, classifier, ldamodel1, ldamodel2):
 
     print(sklearn.metrics.accuracy_score(test_ids, pred_ids))
     print(len(test_ids))
-    print(len(predatory_ids))
 
     false_positives = 0
     false_negatives = 0
