@@ -1,5 +1,5 @@
 import sklearn
-
+from sklearn.feature_extraction import DictVectorizer
 import file_processing
 import word_processing
 
@@ -21,32 +21,10 @@ NUM_TOPICS = 5
 def train(train_file, train_conversations, stage1_classifier, stage2_classifier):
     (train_data, train_ids) = file_processing.split_by_conversation(train_file, default_train_user_ids)
 
-    train_data = word_processing.filter_words(train_data)
-    train_data = word_processing.replace_age(train_data)
-    print('replaced age')
-
-    (train_data, train_ids) = word_processing.thin_ids(train_data, train_ids)
-    train_data = word_processing.misc_clean_up(train_data)
-    print('filtered data')
-    print('len ids ' + str(len(train_ids)))
-    print(train_data[0])
-    print('processed training ids')
-
-
-    print('processed training ids')
-    print('len train ids' + str(len(train_ids)))
-    print(train_ids)
-    print('number of predatory ids in train ids ' + str(sum(train_ids)))
-    print (train_data[0])
-
-    dict_train_data = []
-    for data_line in train_data:
-        dict_train_data.append(dict(Counter(data_line)))
-    train_data = dict_train_data
-    print(train_data[0])
+    (train_data, train_ids) = word_processing.entire_cleanup(train_data, train_ids)
+    train_data = word_processing.to_dictionary(train_data)
     dicVec = DictVectorizer()
     train_data = dicVec.fit_transform(train_data)
-
     stage1_classifier.fit(train_data, train_ids)
     print("fitted stage 1 classifier")
 
@@ -58,12 +36,7 @@ def train(train_file, train_conversations, stage1_classifier, stage2_classifier)
     print(lda_ids)
     print(sum(lda_ids))
 
-    lda_data = word_processing.filter_words(lda_data)
-    lda_data = word_processing.replace_age(lda_data)
-    print('replaced age')
-
-    (lda_data, lda_ids) = word_processing.thin_ids(lda_data, lda_ids)
-    lda_data = word_processing.misc_clean_up(lda_data)
+    (lda_data, lda_ids) = word_processing.entire_cleanup(lda_data, lda_ids)
 
     # Gensim Latent Dirichlet Allocation
     (ldamodel1, ldamodel2) = word_processing.double_lda(lda_data, lda_ids)
@@ -84,35 +57,18 @@ def train(train_file, train_conversations, stage1_classifier, stage2_classifier)
     gens_data = word_processing.bag_of_words_double(lda_data, ldamodel1, ldamodel2)
 
     stage2_classifier.fit(gens_data, lda_ids)
-
     print('fitted stage 2 classifier')
 
-    return (ldamodel1, ldamodel2)
+    return (ldamodel1, ldamodel2, dicVec)
 
 
-def test(test_file, test_conversations, stage1_classifier, stage2_classifier, ldamodel1, ldamodel2):
+def test(test_file, test_conversations, stage1_classifier, stage2_classifier, ldamodel1, ldamodel2, dictionary):
     (test_data, test_ids) = file_processing.split_by_conversation(test_file, default_test_user_ids)
 
-    test_data = word_processing.filter_words(test_data)
-    test_data = word_processing.replace_age(test_data)
-
-    print("filtered test data")
-
-    (test_data, test_ids) = word_processing.thin_ids(test_data, test_ids)
-    test_data = word_processing.misc_clean_up(test_data)
-
-    print("thinned test ids")
-
-    print(test_data[0])
-    dict_test_data = []
-    for data_line in test_data:
-        dict_test_data.append(dict(Counter(data_line)))
-    test_data = dict_test_data
-    print(test_data[0])
-
-    dicVec = DictVectorizer()
-    train_data = dicVec.fit_transform(test_data)
-    pred_ids = stage1_classifier.predict(train_data)
+    (test_data, test_ids) = word_processing.entire_cleanup(test_data, test_ids)
+    test_data = word_processing.to_dictionary(test_data)
+    test_data = dictionary.fit_transform(test_data)
+    pred_ids = stage1_classifier.predict(test_data)
     print("Statistics for STAGE 1------------------------------------------------------------------------------------")
     word_processing.print_metrics(test_ids, pred_ids)
 
@@ -140,8 +96,8 @@ def main(train_file=default_train_file, test_file=default_test_file,
          train_user_ids=default_train_user_ids, test_user_ids=default_test_user_ids):
     stage1_classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 5})
     stage2_classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 5})
-    (ldamodel1, ldamodel2) = train(train_file, train_user_ids, stage1_classifier, stage2_classifier)
-    test(test_file, test_user_ids, stage1_classifier, stage2_classifier, ldamodel1, ldamodel2)
+    (ldamodel1, ldamodel2, dicVec) = train(train_file, train_user_ids, stage1_classifier, stage2_classifier)
+    test(test_file, test_user_ids, stage1_classifier, stage2_classifier, ldamodel1, ldamodel2, dicVec)
 
 if __name__ == '__main__':
     main()

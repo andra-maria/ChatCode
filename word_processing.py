@@ -1,5 +1,4 @@
 from nltk import WordNetLemmatizer
-from sklearn.feature_extraction import DictVectorizer
 from collections import Counter
 
 from numpy import zeros
@@ -88,6 +87,7 @@ def misc_clean_up(words):
     filtered_words = []
 
     for word_vector in words:
+        word_vector = list(map(lambda x: '' if x is None else x, word_vector))
         word_vector = [re.sub(r'[^a-zA-Z]', '', word) for word in word_vector]
         filtered_words.append(word_vector)
 
@@ -290,16 +290,16 @@ def print_metrics(pred_ids, test_ids):
 def entire_cleanup(data, ids):
     data = filter_words(data)
     data = replace_age(data)
-    (data, train_ids) = thin_ids(data, ids)
+    (data, ids) = thin_ids(data, ids)
     data = misc_clean_up(data)
 
     print('filtered data')
-    print('len ids ' + str(len(train_ids)))
+    print('len ids ' + str(len(ids)))
     print(data[0])
     print('processed training ids')
-    print('len train ids' + str(len(train_ids)))
-    print(train_ids)
-    print('number of predatory ids in train ids ' + str(sum(train_ids)))
+    print('len train ids' + str(len(ids)))
+    print(ids)
+    print('number of predatory ids in train ids ' + str(sum(ids)))
     return data, ids
 
 def to_dictionary(data):
@@ -308,6 +308,4 @@ def to_dictionary(data):
         dict_train_data.append(dict(Counter(data_line)))
     data = dict_train_data
     print(data[0])
-    dicVec = DictVectorizer()
-    data = dicVec.fit_transform(data)
     return data
