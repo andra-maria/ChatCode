@@ -1,2 +1,2 @@
-true positives / negatives: 2692 / 123452
-false positives / negatives: 13867 / 277
+true positives / negatives: 2511 / 128391
+false positives / negatives: 8928 / 458

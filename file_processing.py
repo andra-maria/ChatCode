@@ -5,7 +5,7 @@ text_tag = '<text>'
 end_text_tag = '</text>'
 author_tag = '<author>'
 enc = 'utf-8'
-min_line_count = 10
+min_line_count = 20
 
 def split_by_conversation(filename, pred_file):
     result = []

@@ -169,7 +169,7 @@ def test(test_file, test_conversations, classifier, ldamodel1, ldamodel2):
 def main(train_file=default_train_file, test_file=default_test_file,
          train_conversations=default_train_conversations, test_conversations=default_test_conversations,
          train_user_ids=default_train_user_ids, test_user_ids=default_test_user_ids):
-    classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 20})
+    classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 5})
     (ldamodel1, ldamodel2) = train(train_file, train_user_ids, classifier)
     test(test_file, test_user_ids, classifier, ldamodel1, ldamodel2)
 
