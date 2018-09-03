@@ -1,6 +1,8 @@
 from nltk import WordNetLemmatizer
-from numpy import zeros
+from sklearn.feature_extraction import DictVectorizer
+from collections import Counter
 
+from numpy import zeros
 import file_processing
 import gensim
 import datetime
@@ -70,7 +72,8 @@ def get_agetype(word):
         if 7 < wordint < 18:
             return 'age_minor'
         else:
-            return 'age_adult'
+            if wordint < 80:
+                return 'age_adult'
     except AttributeError:
         return word
 
@@ -253,3 +256,58 @@ def double_lda(data, ids):
     ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=35, id2word=dictionary, passes=5)
 
     return ldamodel1, ldamodel2
+
+def print_metrics(pred_ids, test_ids):
+    print(sklearn.metrics.accuracy_score(test_ids, pred_ids))
+    print(len(test_ids))
+
+    false_positives = 0
+    false_negatives = 0
+
+    true_positives = 0
+    true_negatives = 0
+
+    for i in range(len(pred_ids)):
+        if pred_ids[i] == test_ids[i]:
+            if pred_ids[i] == 0:
+                true_negatives += 1
+            else:
+                true_positives += 1
+        else:
+            if pred_ids[i] == 0:
+                false_negatives += 1
+            else:
+                false_positives += 1
+
+    res = open('res.txt', 'w')
+    res.write('true positives / negatives: ' + str(true_positives) + ' / ' + str(true_negatives))
+    res.write('\nfalse positives / negatives: ' + str(false_positives) + ' / ' + str(false_negatives))
+    res.close()
+
+    print('true positives / negatives: ' + str(true_positives) + ' / ' + str(true_negatives))
+    print('\nfalse positives / negatives: ' + str(false_positives) + ' / ' + str(false_negatives))
+
+def entire_cleanup(data, ids):
+    data = filter_words(data)
+    data = replace_age(data)
+    (data, train_ids) = thin_ids(data, ids)
+    data = misc_clean_up(data)
+
+    print('filtered data')
+    print('len ids ' + str(len(train_ids)))
+    print(data[0])
+    print('processed training ids')
+    print('len train ids' + str(len(train_ids)))
+    print(train_ids)
+    print('number of predatory ids in train ids ' + str(sum(train_ids)))
+    return data, ids
+
+def to_dictionary(data):
+    dict_train_data = []
+    for data_line in data:
+        dict_train_data.append(dict(Counter(data_line)))
+    data = dict_train_data
+    print(data[0])
+    dicVec = DictVectorizer()
+    data = dicVec.fit_transform(data)
+    return data

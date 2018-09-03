@@ -11,10 +11,9 @@ def split_by_conversation(filename, pred_file):
     result = []
     current_convo = []
     conversation_ids = []
+
     current_id = None
     line_count = 0
-    add_count = 0
-    skip_count = 0
 
     pred_ids = split_ids(None, pred_file)
     is_predatory_conversation = 0
@@ -27,13 +26,14 @@ def split_by_conversation(filename, pred_file):
                     if line_count > min_line_count:
                         result.append(current_convo)
                         conversation_ids.append(is_predatory_conversation)
+
                     current_convo = []
                     current_id = line.split('"')[1].split('"')[0]
                     is_predatory_conversation = 0
 
             if author_tag in line:
-                current_id = line.split('>')[1].split('<')[0]
-                if current_id in pred_ids:
+                author_id = line.split('>')[1].split('<')[0]
+                if author_id in pred_ids:
                     is_predatory_conversation = 1
 
             if text_tag in line:
@@ -50,16 +50,15 @@ def split_by_conversation(filename, pred_file):
     return result, conversation_ids
 
 
-def split_by_conversation_skip(filename, pred_file):
+def split_by_conversation_by_predators(filename, predatory_conversations):
     result = []
     current_convo = []
     conversation_ids = []
+    binary_ids = []
+
     current_id = None
     line_count = 0
-    add_count = 0
-    skip_count = 0
-
-    pred_ids = split_ids(None, pred_file)
+    i = 0
     is_predatory_conversation = 0
 
     with open(filename, "r", encoding=enc) as ins:
@@ -67,144 +66,36 @@ def split_by_conversation_skip(filename, pred_file):
 
             if conversation_tag in line:
                 if current_convo:
-                    if line_count > min_line_count:
+                    if line_count > min_line_count and is_predatory_conversation is 1:
                         result.append(current_convo)
-                        conversation_ids.append(is_predatory_conversation)
+                        conversation_ids.append(current_id)
+                        binary_ids.append(is_predatory_conversation)
+
                     current_convo = []
                     current_id = line.split('"')[1].split('"')[0]
-                    is_predatory_conversation = 0
+                    if predatory_conversations[i] is 1:
+                        is_predatory_conversation = 1
+                    else:
+                        is_predatory_conversation = 0
+                i = i +1
 
             if author_tag in line:
-                current_id = line.split('>')[1].split('<')[0]
-                if current_id in pred_ids:
-                    is_predatory_conversation = 1
+                author_id = line.split('>')[1].split('<')[0]
 
             if text_tag in line:
                 line = line.replace(text_tag, ' ')
                 line = line.replace(end_text_tag, ' ')
                 line = line.lower()
                 line_count = line_count + 1
-                if add_count < 10:
-                    current_convo.extend(filter(bool, (split(r'\W+', line))))
-                    add_count = add_count + 1
-                else:
-                    skip_count = skip_count + 1
-                    if skip_count is 5:
-                        add_count = 0
-                        skip_count = 0
+                current_convo.extend(filter(bool, (split(r'\W+', line))))
 
-    if current_convo and line_count > min_line_count:
+    if current_convo and line_count > min_line_count and is_predatory_conversation is 1:
         result.append(current_convo)
-        conversation_ids.append(is_predatory_conversation)
+        conversation_ids.append(current_id)
+        binary_ids.append(is_predatory_conversation)
 
-    return result, conversation_ids
+    return result, conversation_ids, binary_ids
 
-
-def split_by_conversation_skip_predators(filename, pred_file):
-    result = []
-    current_convo = []
-    conversation_ids = []
-    current_id = None
-
-    line_count = 0
-    add_count = 0
-    skip_count = 0
-
-    pred_ids = split_ids(None, pred_file)
-    is_pred = 0
-    is_predatory_conversation = 0
-    with open(filename, "r", encoding=enc) as ins:
-        for line in ins:
-
-            if conversation_tag in line:
-                if current_convo:
-                    if line_count > min_line_count:
-                        result.append(current_convo)
-                        conversation_ids.append(is_predatory_conversation)
-                    current_convo = []
-                    current_id = line.split('"')[1].split('"')[0]
-                    is_predatory_conversation = 0
-
-            if author_tag in line:
-                current_id = line.split('>')[1].split('<')[0]
-                if current_id in pred_ids:
-                    is_pred = 1
-                    is_predatory_conversation = 1
-                else:
-                    is_pred = 0
-
-            if text_tag in line:
-                line = line.replace(text_tag, ' ')
-                line = line.replace(end_text_tag, ' ')
-                line = line.lower()
-                line_count = line_count + 1
-                if add_count < 10 or is_pred is 0:
-                    current_convo.extend(filter(bool, (split(r'\W+', line))))
-                    if is_pred:
-                        add_count = add_count + 1
-                else:
-                    skip_count = skip_count + 1
-                    if skip_count is 5:
-                        add_count = 0
-                        skip_count = 0
-
-    if current_convo and line_count > min_line_count:
-        result.append(current_convo)
-        conversation_ids.append(is_predatory_conversation)
-
-    return result, conversation_ids
-
-
-def split_by_conversation_skip_predatory_conversations(filename, pred_file):
-    result = []
-    current_convo = []
-    conversation_ids = []
-    current_id = None
-
-    line_count = 0
-    add_count = 0
-    skip_count = 0
-
-    pred_ids = split_conversations(pred_file)
-    is_predatory_conversation = 0
-
-    with open(filename, "r", encoding=enc) as ins:
-        for line in ins:
-
-            if conversation_tag in line:
-                if current_convo:
-                    if line_count > min_line_count:
-                        result.append(current_convo)
-                        conversation_ids.append(is_predatory_conversation)
-                    current_convo = []
-                    current_id = line.split('"')[1].split('"')[0]
-                    is_predatory_conversation = 0
-
-            if author_tag in line:
-                current_id = line.split('>')[1].split('<')[0]
-                if current_id in pred_ids:
-                    is_predatory_conversation = 1
-
-            if text_tag in line:
-                line = line.replace(text_tag, ' ')
-                line = line.replace(end_text_tag, ' ')
-                line = line.lower()
-                line_count = line_count + 1
-                if add_count < 10 or is_predatory_conversation is 0:
-                    current_convo.extend(filter(bool, (split(r'\W+', line))))
-                    if is_predatory_conversation:
-                        add_count = add_count + 1
-                else:
-                    skip_count = skip_count + 1
-                    if skip_count is 5:
-                        add_count = 0
-                        skip_count = 0
-
-    if current_convo and line_count > min_line_count:
-        result.append(current_convo)
-        conversation_ids.append(is_predatory_conversation)
-
-    return result, conversation_ids
 
 def split_by_user_filter_short_conversations(filename):
     current_convo = {}
