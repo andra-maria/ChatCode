@@ -160,17 +160,18 @@ def bag_of_words_double(data, ldamodel1, ldamodel2):
     return all_topics
 
 
-def thin_ids(words, ids):
+def thin_ids(words, ids, binary_ids):
     length = len(words)
     i = 0
     while i < length:
         if len(words[i]) < 4:
             words.pop(i)
             ids.pop(i)
+            binary_ids.pop(i)
             i = i-1
             length = length - 1
         i = i+1
-    return words, ids
+    return words, ids, binary_ids
 
 
 def conversations_binary(conversation_ids, predatory_conversation_ids):
@@ -182,58 +183,6 @@ def conversations_binary(conversation_ids, predatory_conversation_ids):
             result.append(0)
     return result
 
-
-def lda_fewer_nonpred(num_nonpred, data, ids):
-    current_data = []
-    nonpred_prob = int((len(ids) - sum(ids)) / num_nonpred)
-
-    for i in range(len(data)):
-        data_vector = data[i]
-        current_id = ids[i]
-        if current_id is 1:
-            current_data.append(data_vector)
-        else:
-            app = random.randrange(1, nonpred_prob)
-            if app is 1:
-                current_data.append(data_vector)
-
-    dictionary = gensim.corpora.Dictionary(current_data)
-    corpus = [dictionary.doc2bow(text) for text in current_data]
-
-    print(datetime.datetime.now().hour, datetime.datetime.now().minute)
-
-    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=40, id2word=dictionary, passes=5)
-
-    return ldamodel
-
-
-def lda_train_sep(data, ids):
-    pred_data = []
-    other_data = []
-
-    for i in range(len(data)):
-        current_id = ids[i]
-        data_vector = data[i]
-        if current_id is 1:
-            pred_data.append(data_vector)
-        else:
-            other_data.append(data_vector)
-
-    dictionary = gensim.corpora.Dictionary(data)
-    corpus = [dictionary.doc2bow(text) for text in pred_data]
-
-    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=40, id2word=dictionary, passes=5)
-
-
-    topics = ldamodel.print_topics(num_words=4)
-    for topic in topics:
-        print(topic)
-
-
-    corpus = [dictionary.doc2bow(text) for text in other_data]
-    ldamodel.update(corpus)
-
-    return ldamodel
 
 def double_lda(data, ids):
     pred_data = []
@@ -250,16 +199,16 @@ def double_lda(data, ids):
     dictionary = gensim.corpora.Dictionary(data)
     corpus1 = [dictionary.doc2bow(text) for text in pred_data]
 
-    ldamodel1 = gensim.models.ldamodel.LdaModel(corpus1, num_topics=35, id2word=dictionary, passes=5)
+    ldamodel1 = gensim.models.ldamodel.LdaModel(corpus1, num_topics=15, id2word=dictionary, passes=5)
 
     corpus2 = [dictionary.doc2bow(text) for text in other_data]
-    ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=35, id2word=dictionary, passes=5)
+    ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=15, id2word=dictionary, passes=5)
 
     return ldamodel1, ldamodel2
 
-def print_metrics(pred_ids, test_ids):
+def print_metrics(test_ids, pred_ids):
     print(sklearn.metrics.accuracy_score(test_ids, pred_ids))
-    print(len(test_ids))
+    print("total ids " + str(len(test_ids)))
 
     false_positives = 0
     false_negatives = 0
@@ -287,11 +236,11 @@ def print_metrics(pred_ids, test_ids):
     print('true positives / negatives: ' + str(true_positives) + ' / ' + str(true_negatives))
     print('\nfalse positives / negatives: ' + str(false_positives) + ' / ' + str(false_negatives))
 
-def entire_cleanup(data, ids):
+def entire_cleanup(data, ids, binary_ids):
     data = filter_words(data)
     data = replace_age(data)
-    (data, ids) = thin_ids(data, ids)
     data = misc_clean_up(data)
+    (data, ids, binary_ids) = thin_ids(data, ids, binary_ids)
 
     print('filtered data')
     print('len ids ' + str(len(ids)))
@@ -299,8 +248,7 @@ def entire_cleanup(data, ids):
     print('processed training ids')
     print('len train ids' + str(len(ids)))
     print(ids)
-    print('number of predatory ids in train ids ' + str(sum(ids)))
-    return data, ids
+    return data, ids, binary_ids
 
 def to_dictionary(data):
     dict_train_data = []
