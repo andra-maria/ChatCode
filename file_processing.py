@@ -8,6 +8,7 @@ enc = 'utf-8'
 min_line_count = 20
 
 def split_by_conversation(filename, pred_file):
+    i = 0
     result = []
     current_convo = []
     conversation_ids = []
@@ -28,6 +29,7 @@ def split_by_conversation(filename, pred_file):
                         result.append(current_convo)
                         conversation_ids.append(current_id)
                         binary_conversation_ids.append(is_predatory_conversation)
+                        i = i + 1
 
                     current_convo = []
                     current_id = line.split('"')[1].split('"')[0]
@@ -45,6 +47,9 @@ def split_by_conversation(filename, pred_file):
                 line_count = line_count + 1
                 current_convo.extend(filter(bool, (split(r'\W+', line))))
 
+            if i is 100:
+                break
+
     if current_convo and line_count > min_line_count:
         result.append(current_convo)
         conversation_ids.append(current_id)
@@ -55,7 +60,7 @@ def split_by_conversation(filename, pred_file):
 def split_by_user_id(filename):
     result = {}
     current_id = None
-
+    i = 0
     with open(filename, "r", encoding=enc) as ins:
         for line in ins:
 
@@ -65,13 +70,15 @@ def split_by_user_id(filename):
             if text_tag in line:
                 if current_id not in result:
                     result[current_id] = []
+                    i = i+1
 
                 line = line.replace(text_tag, ' ')
                 line = line.replace(end_text_tag, ' ')
                 line = line.lower()
 
                 result[current_id].extend(filter(bool, (split(r'\W+', line))))
-
+            if i is 500:
+                break;
     return list(result.values()), list(result.keys())
 
 

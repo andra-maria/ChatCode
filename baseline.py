@@ -12,6 +12,9 @@ default_test_conversations = '../pan12-sexual-predator-identification-test-corpu
 default_train_user_ids = '../pan12-sexual-predator-identification-training-corpus-2012-05-01/pan12-sexual-predator-identification-training-corpus-predators-2012-05-01.txt'
 default_test_user_ids = '../pan12-sexual-predator-identification-test-corpus-2012-05-21/pan12-sexual-predator-identification-groundtruth-problem1.txt'
 
+demo_test_conversations = '../demo/demo_test_corpus.xml'
+demo_test_preds = '../demo/demo_test_pred.txt'
+
 default_processing_function = file_processing.split_by_conversation
 default_id_function = file_processing.split_ids
 
@@ -19,7 +22,7 @@ NUM_TOPICS = 5
 
 
 def train(train_file, train_conversations, stage1_classifier, stage2_classifier):
-    (train_data, binary_ids, train_ids) = file_processing.split_by_conversation(train_file, default_train_user_ids)
+    (train_data, binary_ids, train_ids) = file_processing.split_by_conversation(default_train_file, default_train_user_ids)
 
     (train_data, train_ids, binary_ids) = word_processing.entire_cleanup(train_data, train_ids, binary_ids)
     train_data = word_processing.to_dictionary(train_data)
@@ -28,15 +31,13 @@ def train(train_file, train_conversations, stage1_classifier, stage2_classifier)
     stage1_classifier.fit(train_data, binary_ids)
     print("fitted stage 1 classifier")
 
-    (lda_data, lda_ids) = file_processing.split_by_user_id(train_file)
+    (lda_data, lda_ids) = file_processing.split_by_user_id(default_train_file)
     predatory_ids = file_processing.split_ids(None, default_train_user_ids)
     binary_ids = list(map(lambda x: 1 if x in predatory_ids else 0, lda_ids))
-    print(lda_data[0])
-    print(predatory_ids)
-    print(lda_ids)
-    print(sum(binary_ids))
-
+    (binary_ids, lda_ids, lda_data) = word_processing.reduce_ids_for_demo(binary_ids, lda_ids, lda_data)
     (lda_data, lda_ids, binary_ids) = word_processing.entire_cleanup(lda_data, lda_ids, binary_ids)
+    print("Predators in binary after cleanup " + str(sum(binary_ids)))
+    print("Total users after cleanup " + str(len(binary_ids)))
 
     # Gensim Latent Dirichlet Allocation
     (ldamodel1, ldamodel2) = word_processing.double_lda(lda_data, binary_ids)
@@ -63,7 +64,7 @@ def train(train_file, train_conversations, stage1_classifier, stage2_classifier)
 
 
 def test(test_file, test_conversations, stage1_classifier, stage2_classifier, ldamodel1, ldamodel2, dictionary):
-    (test_data, binary_ids, test_ids) = file_processing.split_by_conversation(test_file, default_test_user_ids)
+    (test_data, binary_ids, test_ids) = file_processing.split_by_conversation(demo_test_conversations, demo_test_preds)
 
     (test_data, test_ids, binary_ids) = word_processing.entire_cleanup(test_data, test_ids, binary_ids)
     test_data = word_processing.to_dictionary(test_data)
@@ -81,7 +82,7 @@ def test(test_file, test_conversations, stage1_classifier, stage2_classifier, ld
 
     (current_data, current_ids) = file_processing.split_by_user_pred_conv(test_file, pred_conversation_ids)
     binary_ids = []
-    predator_ids = file_processing.split_ids(None, default_test_user_ids)
+    predator_ids = file_processing.split_ids(None, demo_test_preds)
     for i in range(len(current_ids)):
         if current_ids[i] in predator_ids:
             binary_ids.append(1)
@@ -99,8 +100,8 @@ def test(test_file, test_conversations, stage1_classifier, stage2_classifier, ld
 def main(train_file=default_train_file, test_file=default_test_file,
          train_conversations=default_train_conversations, test_conversations=default_test_conversations,
          train_user_ids=default_train_user_ids, test_user_ids=default_test_user_ids):
-    stage1_classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 3})
-    stage2_classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 13})
+    stage1_classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 1, 1: 1})
+    stage2_classifier = sklearn.svm.SVC(kernel='linear',  class_weight={0: 5, 1: 1})
     (ldamodel1, ldamodel2, dicVec) = train(train_file, train_user_ids, stage1_classifier, stage2_classifier)
     test(test_file, test_user_ids, stage1_classifier, stage2_classifier, ldamodel1, ldamodel2, dicVec)
 

@@ -12,7 +12,7 @@ import random
 
 def filter_words(words):
     filtered_words = []
-    stop_words = sklearn.feature_extraction.text.ENGLISH_STOP_WORDS.union(['amp', 'apos', 'http', 'quot', 'www', 'href', 'html', 'com'])
+    stop_words = sklearn.feature_extraction.text.ENGLISH_STOP_WORDS.union(['amp', 'apos', 'http', 'quot', 'www', 'href', 'html', 'com', 'net'])
 
     for word_vector in words:
         word_vector = [word for word in word_vector if word not in stop_words]
@@ -164,7 +164,7 @@ def thin_ids(words, ids, binary_ids):
     length = len(words)
     i = 0
     while i < length:
-        if len(words[i]) < 4:
+        if len(words[i]) < 1:
             words.pop(i)
             ids.pop(i)
             binary_ids.pop(i)
@@ -199,12 +199,29 @@ def double_lda(data, ids):
     dictionary = gensim.corpora.Dictionary(data)
     corpus1 = [dictionary.doc2bow(text) for text in pred_data]
 
-    ldamodel1 = gensim.models.ldamodel.LdaModel(corpus1, num_topics=15, id2word=dictionary, passes=5)
+    ldamodel1 = gensim.models.ldamodel.LdaModel(corpus1, num_topics=15, id2word=dictionary, passes=2)
 
     corpus2 = [dictionary.doc2bow(text) for text in other_data]
-    ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=15, id2word=dictionary, passes=5)
+    ldamodel2 = gensim.models.ldamodel.LdaModel(corpus2, num_topics=15, id2word=dictionary, passes=2)
 
     return ldamodel1, ldamodel2
+
+def reduce_ids_for_demo(binary_ids, actual_ids, data):
+    length = len(binary_ids)
+    i = 0
+    j = len(binary_ids) - sum(binary_ids)
+    target_no = sum(binary_ids)
+    while i < length and j > target_no:
+        if binary_ids[i] is 0:
+            data.pop(i)
+            actual_ids.pop(i)
+            binary_ids.pop(i)
+            i = i - 1
+            length = length - 1
+            j = j -1
+        i = i + 1
+    return binary_ids, actual_ids, data
+
 
 def print_metrics(test_ids, pred_ids):
     print(sklearn.metrics.accuracy_score(test_ids, pred_ids))
@@ -241,13 +258,6 @@ def entire_cleanup(data, ids, binary_ids):
     data = replace_age(data)
     data = misc_clean_up(data)
     (data, ids, binary_ids) = thin_ids(data, ids, binary_ids)
-
-    print('filtered data')
-    print('len ids ' + str(len(ids)))
-    print(data[0])
-    print('processed training ids')
-    print('len train ids' + str(len(ids)))
-    print(ids)
     return data, ids, binary_ids
 
 def to_dictionary(data):
@@ -255,5 +265,5 @@ def to_dictionary(data):
     for data_line in data:
         dict_train_data.append(dict(Counter(data_line)))
     data = dict_train_data
-    print(data[0])
     return data
+
